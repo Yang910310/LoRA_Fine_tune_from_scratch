@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 import json
 training_data = []
-with open("processed_dataset.jsonl", encoding="utf-8") as file:
+with open("translated_training_data.jsonl", encoding="utf-8") as file:
     for line in file:
         features = json.loads(line)
         # Format the entire example as a single string.
@@ -24,7 +24,7 @@ with open("processed_dataset.jsonl", encoding="utf-8") as file:
 
 # 載入驗證集
 validation_data = []
-with open("evaluation_dataset.jsonl", encoding="utf-8") as file:
+with open("translated_evaluation_data.jsonl", encoding="utf-8") as file:
     for line in file:
         features = json.loads(line)
         template = "Instruction:\n{instruction}\n\nResponse:\n{response}"
@@ -52,7 +52,7 @@ tokenizer.pad_token = tokenizer.eos_token  # Set the pad token to be the same as
 
 # Define the prompt for inference
 prompt = template.format(
-    instruction="桌球的發球規則有哪些?",
+    instruction="What are the rules for serving in table tennis?",
     response="",
 )
 
@@ -110,7 +110,7 @@ training_arguments = SFTConfig(
     output_dir=r"D:\research_information\LoRA_fine_tuning_test\LoRA_Fine_tune_from_scratch\lora_fine_tuned_model",
     overwrite_output_dir=True,
     save_strategy="epoch",
-    num_train_epochs=10,
+    num_train_epochs=5,
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
     optim="adamw_torch",
@@ -143,45 +143,40 @@ trainer.train()
 # 結束計時
 end_time = time.time()
 
-
-
-# 提取每個 epoch 的 Loss 日誌
-epoch_loss_history = []
-epoch_eval_loss_history = []
-
-# 手動執行驗證
-eval_results = trainer.evaluate()
-
-# 紀錄驗證 Loss
-epoch_eval_loss_history.append(eval_results["eval_loss"])
-
-for log in trainer.state.log_history:
-    if "loss" in log and "epoch" in log:
-        epoch_loss_history.append(log["loss"])
-    if "eval_loss" in log and "epoch" in log:
-        epoch_eval_loss_history.append(log["eval_loss"])
-
-# 繪製每個 epoch 的 Loss 圖表
-epochs = list(range(1, len(epoch_loss_history) + 1))
-
-plt.figure(figsize=(10, 6))
-plt.plot(epochs, epoch_loss_history, label="Training Loss", color="blue", marker="o")
-if epoch_eval_loss_history:
-    plt.plot(epochs, epoch_eval_loss_history, label="Validation Loss", color="red", marker="x")
-plt.xlabel("Epochs")
-plt.ylabel("Loss")
-plt.title("Loss Curve Per Epoch")
-plt.legend()
-plt.grid()
-plt.savefig("loss_curve_per_epoch.png")
-print("Loss 圖表已儲存為 loss_curve_per_epoch.png")
-
 # 計算總時間
 total_time = end_time - start_time
 hours = int(total_time // 3600)
 minutes = int((total_time % 3600) // 60)
 seconds = int(total_time % 60)
 print(f"微調完成，總耗時: {hours} 小時 {minutes} 分鐘 {seconds} 秒")
+
+# 列印 Log History
+print("Log History:")
+for log in trainer.state.log_history:
+    print(log)
+    
+# 提取每個 epoch 的 Loss 日誌
+epoch_loss_history = []
+
+
+for log in trainer.state.log_history:
+    if "loss" in log and "epoch" in log:
+        epoch_loss_history.append(log["loss"])
+
+# 繪製每個 epoch 的 Loss 圖表
+epochs = list(range(1, len(epoch_loss_history) + 1))
+
+plt.figure(figsize=(10, 6))
+plt.plot(epochs, epoch_loss_history, label="Training Loss", color="blue", marker="o")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.title("Loss Curve Per Epoch")
+plt.legend()
+plt.grid()
+plt.savefig("loss_curve.png")
+print("Loss 圖表已儲存為 loss_curve.png")
+
+
 
 # # 手動儲存微調後的 LoRA 模型
 # trainer.model.to("cpu").save_pretrained(finetuned_model)

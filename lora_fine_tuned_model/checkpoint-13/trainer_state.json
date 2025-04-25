@@ -11,9 +11,9 @@
   "log_history": [
     {
       "epoch": 0.8,
-      "grad_norm": 3.244852066040039,
+      "grad_norm": 3.256821393966675,
       "learning_rate": 1.5000000000000002e-05,
-      "loss": 5.7409,
+      "loss": 5.7415,
       "mean_token_accuracy": 0.2162109375,
       "num_tokens": 3373.0,
       "step": 10
