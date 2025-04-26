@@ -94,6 +94,7 @@ def preprocess_function(examples):
 
 # 預處理資料
 tokenized_dataset = train_dataset.map(preprocess_function, batched=True)
+val_tokenized_dataset = val_dataset.map(preprocess_function, batched=True)
 
 # 定義 LoRA 配置
 peft_config = LoraConfig(
@@ -107,9 +108,11 @@ peft_config = LoraConfig(
 
 # 定義微調參數
 training_arguments = SFTConfig(
-    output_dir=r"D:\research_information\LoRA_fine_tuning_test\LoRA_Fine_tune_from_scratch\lora_fine_tuned_model",
+    output_dir=r"D:\research_information\LoRA_fine_tuning_test\LoRA_Fine_tune_from_scratch\fine_tuned_model_english_5",
     overwrite_output_dir=True,
     save_strategy="epoch",
+    eval_strategy="epoch",
+    logging_strategy="epoch",
     num_train_epochs=5,
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
@@ -119,7 +122,6 @@ training_arguments = SFTConfig(
     max_grad_norm=1.0,
     warmup_ratio=0.1,
     lr_scheduler_type="linear",
-    logging_steps=10,
     report_to="none",
     seed=42
 )
@@ -128,6 +130,7 @@ training_arguments = SFTConfig(
 trainer = SFTTrainer(
     model=model,
     train_dataset=tokenized_dataset,
+    eval_dataset=val_tokenized_dataset,
     peft_config=peft_config,
     args=training_arguments,
     # 程式使用的是 PyTorch,因此需要將數據轉換為 PyTorch(pt) 張量格式
@@ -154,27 +157,33 @@ print(f"微調完成，總耗時: {hours} 小時 {minutes} 分鐘 {seconds} 秒"
 print("Log History:")
 for log in trainer.state.log_history:
     print(log)
-    
+
 # 提取每個 epoch 的 Loss 日誌
 epoch_loss_history = []
 
-
+# 提取訓練 Loss
 for log in trainer.state.log_history:
     if "loss" in log and "epoch" in log:
         epoch_loss_history.append(log["loss"])
 
+# 提取驗證 Loss
+epoch_eval_loss_history = [log["eval_loss"] for log in trainer.state.log_history if "eval_loss" in log]
+print("驗證 Loss:", epoch_eval_loss_history)
+
 # 繪製每個 epoch 的 Loss 圖表
-epochs = list(range(1, len(epoch_loss_history) + 1))
+epochs = list(range(1, len(epoch_loss_history)+1))
 
 plt.figure(figsize=(10, 6))
 plt.plot(epochs, epoch_loss_history, label="Training Loss", color="blue", marker="o")
+if epoch_eval_loss_history:
+    plt.plot(epochs, epoch_eval_loss_history, label="Validation Loss", color="red", marker="x")
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
 plt.title("Loss Curve Per Epoch")
 plt.legend()
 plt.grid()
-plt.savefig("loss_curve.png")
-print("Loss 圖表已儲存為 loss_curve.png")
+plt.savefig("english_loss_curve_epoch_5.png")
+print("Loss 圖表已儲存為 english_loss_curve_epoch_5.png")
 
 
 

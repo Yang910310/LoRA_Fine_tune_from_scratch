@@ -4,10 +4,10 @@ from peft import PeftModel
 
 # 定義模型名稱
 original_model_name = "meta-llama/Llama-3.2-3B-Instruct"
-finetuned_model_path = r"D:\research_information\LoRA_fine_tuning_test\LoRA_Fine_tune_from_scratch\lora_fine_tuned_model\checkpoint-120"
+finetuned_model_path = r"D:\research_information\LoRA_fine_tuning_test\LoRA_Fine_tune_from_scratch\fine_tuned_model_english_10\checkpoint-120"
 
 # 定義 prompt
-prompt = "桌球的發球規則有哪些?"
+prompt = "桌球發球有哪些規則?"
 
 # 加載原始模型
 original_model = AutoModelForCausalLM.from_pretrained(
@@ -28,7 +28,7 @@ def generate_response(model, tokenizer, prompt):
     inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
     outputs = model.generate(
         inputs.input_ids,
-        max_length=512,
+        max_length=256,
         num_return_sequences=1,
         temperature=1.0,
         top_k=50,
