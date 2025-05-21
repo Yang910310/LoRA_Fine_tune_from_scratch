@@ -12,10 +12,10 @@ from peft import LoraConfig, PeftModel
 import pandas as pd
 from trl import SFTTrainer, SFTConfig
 import matplotlib.pyplot as plt
-
 import json
+
 training_data = []
-with open("translated_training_data.jsonl", encoding="utf-8") as file:
+with open("processed_training_dataset.jsonl", encoding="utf-8") as file:
     for line in file:
         features = json.loads(line)
         # Format the entire example as a single string.
@@ -24,7 +24,7 @@ with open("translated_training_data.jsonl", encoding="utf-8") as file:
 
 # 載入驗證集
 validation_data = []
-with open("translated_evaluation_data.jsonl", encoding="utf-8") as file:
+with open("evaluation_dataset.jsonl", encoding="utf-8") as file:
     for line in file:
         features = json.loads(line)
         template = "Instruction:\n{instruction}\n\nResponse:\n{response}"
@@ -32,8 +32,8 @@ with open("translated_evaluation_data.jsonl", encoding="utf-8") as file:
 
 
 # Define model names
-model_name = "meta-llama/Llama-3.2-3B-Instruct"  # Updated to Hugging Face model
-finetuned_model = "llama3.2-3B-TableTennis-finetuned" 
+# model_name = "meta-llama/Llama-3.2-3B-Instruct"
+model_name = "lianghsun/Llama-3.2-Taiwan-3B-Instruct"
 
 # Load the pre-trained model
 model = AutoModelForCausalLM.from_pretrained(
@@ -50,9 +50,12 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.padding_side = "right" 
 tokenizer.pad_token = tokenizer.eos_token  # Set the pad token to be the same as the eos token
 
+# 定義 system prompt
+system_prompt = "你是一個桌球規則專家。根據桌球規則，提供簡潔且準確的回答。"\
+
 # Define the prompt for inference
 prompt = template.format(
-    instruction="What are the rules for serving in table tennis?",
+    instruction=f"{system_prompt}\n\n桌球發球時，拋球10公分是犯規嗎?",
     response="",
 )
 
@@ -62,11 +65,9 @@ inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
 # Generate the response
 outputs = model.generate(
     inputs.input_ids,
-    max_length=512,
+    max_length=128,
     num_return_sequences=1,
-    temperature=1.0,
-    top_k=50,
-    top_p=0.9,
+    do_sample=False
 )
 
 # Decode and print the response
@@ -98,8 +99,8 @@ val_tokenized_dataset = val_dataset.map(preprocess_function, batched=True)
 
 # 定義 LoRA 配置
 peft_config = LoraConfig(
-    r=4,  # LoRA rank
-    lora_alpha=8,
+    r=8,  # LoRA rank
+    lora_alpha=16,
     lora_dropout=0.1,
     bias="none",
     task_type="CAUSAL_LM",
@@ -108,7 +109,7 @@ peft_config = LoraConfig(
 
 # 定義微調參數
 training_arguments = SFTConfig(
-    output_dir=r"D:\research_information\LoRA_fine_tuning_test\LoRA_Fine_tune_from_scratch\fine_tuned_model_english_5",
+    output_dir=r"D:\research_information\LoRA_fine_tuning_test\LoRA_Fine_tune_from_scratch\fine_tuned_model_chinese_5_1k",
     overwrite_output_dir=True,
     save_strategy="epoch",
     eval_strategy="epoch",
@@ -182,8 +183,8 @@ plt.ylabel("Loss")
 plt.title("Loss Curve Per Epoch")
 plt.legend()
 plt.grid()
-plt.savefig("english_loss_curve_epoch_5.png")
-print("Loss 圖表已儲存為 english_loss_curve_epoch_5.png")
+plt.savefig("_model_loss_curve_epoch_5_1k.png")
+print("Loss 圖表已儲存為 model_loss_curve_epoch_5_1k.png")
 
 
 
